@@ -40,6 +40,7 @@ public class AssetTrackingDBContext : DbContext
             Device? dev = dbDevice.CreateDevice();
             if (dev != null)
             {
+                dev.DBRef = dbDevice;
                 resultDevices.Add(dev);
             }
         }
@@ -69,6 +70,28 @@ public class AssetTrackingDBContext : DbContext
         
         SaveChanges();
     }
+
+    internal void UpdateDevice(Device aDevice)
+    {
+        if (aDevice.DBRef == null)
+        {
+            return;
+        }
+        
+        aDevice.DBRef.SetupDBDevice(aDevice);
+        SaveChanges();
+    }
+
+    internal void DeleteDevice(Device aDevice)
+    {
+        if (aDevice.DBRef == null)
+        {
+            return;
+        }
+
+        DBDevices.Remove(aDevice.DBRef);
+        SaveChanges();
+    }
 }
 
 
@@ -78,7 +101,12 @@ internal class DBDevice
     {
         
     }
-    public DBDevice(Device aDevice) 
+    public DBDevice(Device aDevice)
+    {
+        SetupDBDevice(aDevice);
+    }
+
+    public void SetupDBDevice(Device aDevice)
     {
         PurchasePrice = new DBPrice(aDevice.PurchasePrice.Value, aDevice.PurchasePrice.CurrencyCode);
         PurchaseDate = aDevice.PurchaseDate;
@@ -86,6 +114,9 @@ internal class DBDevice
         ModelName = aDevice.ModelName;
         OfficeLocation = aDevice.OfficeLocation.ToUpper();
         SerialNumber = aDevice.SerialNumber;
+
+        // TODO: This feels a little sketch, but I belive this is fine?
+        aDevice.DBRef = this;
     }
     
     [Key]

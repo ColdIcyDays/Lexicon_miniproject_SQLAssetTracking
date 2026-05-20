@@ -8,12 +8,13 @@ namespace Lexicon_Miniproject_SQLAssetTracking
 {
     internal abstract class Device
     {
-        public string DeviceBrand { get; private set; }
-        public string ModelName { get; private set; }
-        public string OfficeLocation { get; private set; }
-        public string SerialNumber { get; private set; }
-        public DateOnly PurchaseDate { get; private set; }
-        public Price PurchasePrice { get; private set; }
+        public DBDevice? DBRef = null;
+        public string DeviceBrand { get; set; }
+        public string ModelName { get; set; }
+        public string OfficeLocation { get; set; }
+        public string SerialNumber { get; set; }
+        public DateOnly PurchaseDate { get; set; }
+        public Price PurchasePrice { get; set; }
         public Device(Price aPurchasePrice, DateOnly aPurchaseDate, string aDeviceBrand, string aModelName, string aOfficeLocation, string aSerialNumber) 
         {
             PurchasePrice = aPurchasePrice;

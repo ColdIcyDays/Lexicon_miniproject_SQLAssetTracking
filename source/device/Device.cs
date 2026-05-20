@@ -11,15 +11,17 @@ namespace Lexicon_Miniproject_SQLAssetTracking
         public string DeviceBrand { get; private set; }
         public string ModelName { get; private set; }
         public string OfficeLocation { get; private set; }
+        public string SerialNumber { get; private set; }
         public DateOnly PurchaseDate { get; private set; }
         public Price PurchasePrice { get; private set; }
-        public Device(Price aPurchasePrice, DateOnly aPurchaseDate, string aDeviceBrand, string aModelName, string aOfficeLocation) 
+        public Device(Price aPurchasePrice, DateOnly aPurchaseDate, string aDeviceBrand, string aModelName, string aOfficeLocation, string aSerialNumber) 
         {
             PurchasePrice = aPurchasePrice;
             PurchaseDate = aPurchaseDate;
             DeviceBrand = aDeviceBrand;
             ModelName = aModelName;
             OfficeLocation = aOfficeLocation.ToUpper();
+            SerialNumber = aSerialNumber;
         }
 
         public decimal GetPriceInCurrency(string aCurrencyCode)

@@ -53,6 +53,11 @@ public class AssetTrackingDBContext : DbContext
         return resultDevices;
     }
 
+    internal bool IsSerialNumberUnique(string aSerialNumber)
+    {
+        return DBDevices.FirstOrDefault(x => x.SerialNumber == aSerialNumber) == null;
+    }
+    
     internal List<Device> GetDevices(Func<DBDevice, bool> aWhere)
     {
         var devices = DBDevices.Where(aWhere).OrderBy(device => device.SerialNumber);
@@ -72,9 +77,9 @@ public class AssetTrackingDBContext : DbContext
 
     internal void AddDevice(Device aDevice)
     {
-        DBDevice? foundDevice = DBDevices.FirstOrDefault(x => x.SerialNumber == aDevice.SerialNumber);
+        //DBDevice? foundDevice = DBDevices.FirstOrDefault(x => x.SerialNumber == aDevice.SerialNumber);
 
-        if (foundDevice != null)
+        if (!IsSerialNumberUnique(aDevice.SerialNumber))
         {
             return;
         }

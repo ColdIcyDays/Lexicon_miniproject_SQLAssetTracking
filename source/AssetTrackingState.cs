@@ -286,7 +286,7 @@ namespace Lexicon_Miniproject_SQLAssetTracking
                    {
                        ReadUserInput(out userInput);
                        
-                       while (selection == 3 && !userInput.All(Char.IsDigit))
+                       while (selection == 3 && !userInput.All(Char.IsLetter))
                        {
                            ReadUserInput(out userInput);
                        }
@@ -442,6 +442,12 @@ namespace Lexicon_Miniproject_SQLAssetTracking
                         return false;
                     }
 
+                    if (!dbContext.IsSerialNumberUnique(someLowercaseFieldData))
+                    {
+                        aErrorString = "Serial number already in database! Try again with a different serial number!";
+                        return false;
+                    }
+
                     break;
 
                 case 2: // DeviceBrand
@@ -550,6 +556,12 @@ namespace Lexicon_Miniproject_SQLAssetTracking
                         return false;
                     }
 
+                    if (!PriceConverter.IsValidCurrencyCode(someLowercaseFieldData.ToUpper()))
+                    {
+                        aErrorString = "Currency code not found in loaded conversions! Try another one!";
+                        return false;
+                    }
+
                     break;
                 }
             }
@@ -639,7 +651,6 @@ namespace Lexicon_Miniproject_SQLAssetTracking
                         "USD"), device.OfficeLocation);
             }
             
-            LexiConsoleWriter.LexiWriteLine(report);
 
             List<string> reportOptions = new List<string>
             {
@@ -649,25 +660,27 @@ namespace Lexicon_Miniproject_SQLAssetTracking
 
             do
             {
-                int selection = ShowVerticalSelection("Choose the search mode (Up/Down arrow and 's' to select)", reportOptions, ConsoleKey.S);
+                int selection = ShowVerticalSelection(report + "\n ============ \nPlease choose what to do (Up/Down arrow and 's' to select)", reportOptions, ConsoleKey.S);
                 CurrentState = ATInterfaceState.ATI_Mainmenu;
                 
                 if (selection == 1)
                 {
-                    string reportFileName = "tracking_report";
+                    string reportFileName = "reports\\tracking_report";
                     if (LexiFileReader.DoesFileExist(reportFileName + ".txt"))
                     {
                         string[] fileNames = Directory.GetFiles(Directory.GetCurrentDirectory(), $"{reportFileName}*");
                         reportFileName += fileNames.Length;
                     }
                     
-                    LexiFileReader fileReader = new LexiFileReader(reportFileName);
+                    LexiFileReader fileReader = new LexiFileReader(reportFileName + ".txt");
                     fileReader.SetDataAsString(report);
                     fileReader.SaveData();
+
+                    LexiConsoleWriter.LexiWriteLine("Saved file to '" + reportFileName.Replace('\\', '/') + ".txt'...");
+                    Console.ReadKey();
                 }
             } while (CurrentState == ATInterfaceState.ATI_ShowReport);
             
-            Console.ReadKey();
 
             CurrentState = ATInterfaceState.ATI_Mainmenu;
         }
@@ -776,6 +789,7 @@ namespace Lexicon_Miniproject_SQLAssetTracking
             Console.CursorVisible = false;
             
             List<Device> devices = dbContext.GetAllDevices();
+            devices = devices.OrderBy(x => x.OfficeLocation).ToList();
             int currentLineSelection = devices.Count;
             string lowercaseInput = "";
             do
@@ -968,7 +982,8 @@ namespace Lexicon_Miniproject_SQLAssetTracking
         }
         private void ShowUpdateAsset()
         {
-              List<Device> devices = dbContext.GetAllDevices();
+            List<Device> devices = dbContext.GetAllDevices();
+            devices = devices.OrderBy(x => x.OfficeLocation).ToList();
             int currentLineSelection = devices.Count;
             string lowercaseInput = "";
             do

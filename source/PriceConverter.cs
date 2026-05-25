@@ -70,6 +70,19 @@ namespace Lexicon_Miniproject_SQLAssetTracking
             return -1;
         }
 
+        public static bool IsValidCurrencyCode(string aCurrencyCode)
+        {
+            foreach (var conversion in LoadedConversions)
+            {
+                if (conversion.CurrencyCode == aCurrencyCode)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        
         public static void LoadConversions()
         {
             XmlReader xmlReader = XmlReader.Create(XmlUrl);

@@ -3,11 +3,14 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using Lexicon_ConsoleWriter;
+using Lexicon_IndividalProject1_InventoryManagement;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Lexicon_Miniproject_SQLAssetTracking
 {
@@ -41,6 +44,15 @@ namespace Lexicon_Miniproject_SQLAssetTracking
             BaseDevices.Add(new ComputerDevice(new Price(4400, "SEK"), DateOnly.FromDateTime(DateTime.Now.Date.AddMonths(-36 + 1)), "HP", "OmniBook 70", "SWEDEN", "SN-01-0000008"));
             BaseDevices.Add(new ComputerDevice(new Price(40000, "JPY"), DateOnly.FromDateTime(DateTime.Now.Date.AddMonths(-36 + 30)), "HP", "OmniBook 5", "JAPAN", "SN-01-0000009"));
             BaseDevices.Add(new ComputerDevice(new Price(1500, "USD"), DateOnly.FromDateTime(DateTime.Now.Date.AddMonths(-36 + 34)), "Dell", "X7000", "USA", "SN-01-0000010"));
+            BaseDevices.Add(new ComputerDevice(new Price(5000, "JPY"), DateOnly.FromDateTime(DateTime.Now.Date.AddMonths(-36 + -5)), "Smell", "X4000", "JAPAN", "SN-01-0000011"));
+            
+            
+            /* Seed database! */
+            dbContext.Database.EnsureCreated();
+            foreach (var dev in BaseDevices)
+            {
+                dbContext.AddDevice(dev);
+            }
         }
 
         public override void CleanupState() {}
@@ -78,6 +90,7 @@ namespace Lexicon_Miniproject_SQLAssetTracking
                     ShowAssetList();
                     break;
                 case ATInterfaceState.ATI_ShowReport:
+                    ShowAssetReport();
                     break;
                 case ATInterfaceState.ATI_ExitState:
                     StateMachine.PopState();
@@ -118,43 +131,35 @@ namespace Lexicon_Miniproject_SQLAssetTracking
 
         private void ShowAssets(List<Device> aAssets)
         {
-             const int padding = 15;
+            const int padding = 15;
+
+
+            List<Device> sortedDevices = aAssets;
+            sortedDevices.Sort((dev1, dev2) => dev1.GetDeviceType() == dev2.GetDeviceType() ? (dev1.PurchaseDate < dev2.PurchaseDate ? 1 : -1) : 
+                (dev1.GetDeviceType().ToLower() == "computer" ? -1 : 1));
+            
             Console.Clear();
-            LexiConsoleWriter.LexiWriteLine("AssetType".PadRight(padding) + "Office".PadRight(padding) + "Brand".PadRight(padding) + "Model".PadRight(padding) + "Purchase Date".PadRight(padding) + "Price in USD".PadRight(padding) + "Currency".PadRight(padding) + "Local price".PadRight(padding));
-            LexiConsoleWriter.LexiWriteLine("---------".PadRight(padding) + "------".PadRight(padding) + "-----".PadRight(padding) + "-----".PadRight(padding) + "-------------".PadRight(padding) + "------------".PadRight(padding) + "--------".PadRight(padding) + "-----------".PadRight(padding));
-
-            foreach (Device device in aAssets)
+            LexiConsoleWriter.LexiWriteLine("AssetType".PadRight(padding) + "Office".PadRight(padding) + "Brand".PadRight(padding) + "Model".PadRight(padding) + "Purchase Date".PadRight(padding) + "Price".PadRight(padding) + "Currency".PadRight(padding) /*+ "Local price".PadRight(padding)*/);
+            LexiConsoleWriter.LexiWriteLine("---------".PadRight(padding) + "------".PadRight(padding) + "-----".PadRight(padding) + "-----".PadRight(padding) + "-------------".PadRight(padding) + "-----".PadRight(padding) + "--------".PadRight(padding) /*+ "-----------".PadRight(padding)*/);
+            if (sortedDevices.Count > 0 && sortedDevices[0].GetDeviceType().ToLower() == "computer")
             {
-                ShowAsset(device, padding);
-                /*DateTime date = device.PurchaseDate.ToDateTime(new TimeOnly());
-                date = date.AddYears(3);
-                double monthsTilExpiration = date.Subtract(DateTime.Now).TotalDays / 30;
-
-                //Console.BackgroundColor = ConsoleColor.Gray;
-                if (monthsTilExpiration < 3)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                }
-                else if (monthsTilExpiration < 6)
-                {
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                }
-                else
-                {
-                    Console.ForegroundColor = ConsoleColor.White;
-                }
-
-                Console.Write(device.GetDeviceType().PadRight(padding));
-                Console.Write(device.OfficeLocation.PadRight(padding));
-                Console.Write(device.DeviceBrand.PadRight(padding));
-                Console.Write(device.ModelName.PadRight(padding));
-                Console.Write(device.PurchaseDate.ToString().PadRight(padding));
-                Console.Write(device.GetPriceInCurrency("USD").ToString(".##").PadRight(padding));
-                Console.Write(device.PurchasePrice.CurrencyCode.PadRight(padding));
-                Console.Write(device.PurchasePrice.Value.ToString(".##").PadRight(padding));
-                Console.Write("\n");
-                Console.ResetColor();*/
+                LexiConsoleWriter.LexiWriteLine(" == COMPUTERS == ");
             }
+
+            bool hasWrittenSmartphoneHeader = false;
+            foreach (Device device in sortedDevices)
+            {
+                if (!hasWrittenSmartphoneHeader && device.GetDeviceType().ToLower() == "smartphone")
+                {
+                    LexiConsoleWriter.LexiWriteLine(" ");
+                    LexiConsoleWriter.LexiWriteLine(" == SMARTPHONES == ");
+                    hasWrittenSmartphoneHeader = true;
+                }
+                
+                ShowAsset(device, padding);
+            }
+            
+            
         }
 
         private void ShowAsset(Device aDevice, int aPadding)
@@ -182,15 +187,17 @@ namespace Lexicon_Miniproject_SQLAssetTracking
             Console.Write(aDevice.DeviceBrand.PadRight(aPadding));
             Console.Write(aDevice.ModelName.PadRight(aPadding));
             Console.Write(aDevice.PurchaseDate.ToString().PadRight(aPadding));
-            Console.Write(aDevice.GetPriceInCurrency("USD").ToString(".##").PadRight(aPadding));
+            //Console.Write(aDevice.GetPriceInCurrency("USD").ToString(".##").PadRight(aPadding));
+            //Console.Write(PriceConverter.FormatCurrency(PriceConverter.ConvertFromEuro(PriceConverter.ConvertToEuro(aDevice.PurchasePrice), "USD"), aDevice.PurchasePrice.CurrencyCode).PadRight(aPadding));
+            Console.Write(PriceConverter.FormatCurrency(aDevice.PurchasePrice.GetLocalValue(), aDevice.PurchasePrice.CurrencyCode).PadRight(aPadding));
             Console.Write(aDevice.PurchasePrice.CurrencyCode.PadRight(aPadding));
-            Console.Write(aDevice.PurchasePrice.Value.ToString(".##").PadRight(aPadding));
             Console.Write("\n");
             Console.ResetColor();
         }
 
-        private int ShowVerticalSelection(List<string> someSelections, ConsoleKey aSelectionKey, int aStartIndex = 0)
+        private int ShowVerticalSelection(string aTopText, List<string> someSelections, ConsoleKey aSelectionKey, int aStartIndex = 0)
         {
+            Console.CursorVisible = false;
             int padding = 15;
             int currentLineSelection = aStartIndex;
             bool hasSelected = false;
@@ -198,26 +205,28 @@ namespace Lexicon_Miniproject_SQLAssetTracking
             do
             {
                 Console.Clear();
-                currentLineSelection = int.Clamp(currentLineSelection, 1, AssetInfoFields.Length);
+                currentLineSelection = int.Clamp(currentLineSelection, 0, AssetInfoFields.Length - 1);
+                
+                LexiConsoleWriter.LexiWriteLine(aTopText);
 
                 for (int index = 0; index < someSelections.Count; index++)
                 {
                     if (index == currentLineSelection)
                     {
-                        Console.Write((">" + someSelections[index] + "<").PadRight(padding));
+                        LexiConsoleWriter.LexiWriteLine((" > " + someSelections[index] + " ").PadRight(padding));
                     }
                     else
                     {
-                        Console.Write((" " + someSelections[index] + " ").PadRight(padding));
+                        LexiConsoleWriter.LexiWriteLine((" " + someSelections[index] + " ").PadRight(padding));
                     }
                 }
 
                 ConsoleKeyInfo keyInfo = Console.ReadKey();
-                if (keyInfo.Key == ConsoleKey.LeftArrow)
+                if (keyInfo.Key == ConsoleKey.UpArrow)
                 {
                     currentLineSelection--;
                 }
-                else if (keyInfo.Key == ConsoleKey.RightArrow)
+                else if (keyInfo.Key == ConsoleKey.DownArrow)
                 {
                     currentLineSelection++;
                 }
@@ -228,6 +237,7 @@ namespace Lexicon_Miniproject_SQLAssetTracking
                 
             } while (!hasSelected);
 
+            Console.CursorVisible = true;
             return currentLineSelection;
         }
         
@@ -237,18 +247,28 @@ namespace Lexicon_Miniproject_SQLAssetTracking
 
            List<string> options = new List<string>
            {
+               "Show all assets",
                "Search by model",
                "Search by brand",
                "Search by office",
                "Search by purchase year",
                "Go back"
            };
+           
+           List<string> filterOptions = new List<string>
+           {
+               "No filter",
+               "Only expired assets",
+               "Only computers",
+               "Only smartphones",
+               "By office"
+           };
 
-           int selection = 0;
            do
            {
                Console.Clear();
-               selection = ShowVerticalSelection(options, ConsoleKey.S);
+           
+               int selection = ShowVerticalSelection("Choose the search mode (Up/Down arrow and 's' to select)", options, ConsoleKey.S);
 
                if (selection == options.Count - 1)
                {
@@ -262,14 +282,123 @@ namespace Lexicon_Miniproject_SQLAssetTracking
                    
                    LexiConsoleWriter.LexiWriteLine("Please write your search string");
 
-                   ReadUserInput(out userInput);
-               }
-               
-           } while (CurrentState == ATInterfaceState.ATI_ShowAssetList);
-           
+                   if (selection != 0)
+                   {
+                       ReadUserInput(out userInput);
+                       
+                       while (selection == 3 && !userInput.All(Char.IsDigit))
+                       {
+                           ReadUserInput(out userInput);
+                       }
+                   }
 
-           // TODO: Add sorting...
-           Console.ReadKey();
+                   List<Device> devices = new List<Device>();
+
+
+                   switch (selection)
+                   {
+                       case 0:
+                           devices = dbContext.GetAllDevices();
+                           break;
+                       case 1:
+                           devices = dbContext.GetDevices(device =>
+                               device.ModelName.Contains(userInput, StringComparison.CurrentCultureIgnoreCase));
+                           break;
+                       case 2:
+                           devices = dbContext.GetDevices(device =>
+                               device.DeviceBrand.Contains(userInput, StringComparison.CurrentCultureIgnoreCase));
+                           
+                           break;
+                       case 3:
+                           devices = dbContext.GetDevices(device =>
+                               device.OfficeLocation.Contains(userInput, StringComparison.CurrentCultureIgnoreCase));
+                           
+                           break;
+                       case 4:
+                           devices = dbContext.GetDevices(device =>
+                               device.PurchaseDate.Year == DateTime.Parse(userInput + "-01-01").Year);
+                           
+                           break;
+                   }
+
+                   int filterSelection = ShowVerticalSelection("Select filter (Up/Down arrow and 's' to select)", filterOptions, ConsoleKey.S);
+
+                   Console.Clear();
+                   
+                   switch (filterSelection)
+                   {
+                       case 1:
+                           IEnumerable<Device> resultOfFilter = devices.Where(device =>
+                           {
+                               DateTime date = device.PurchaseDate.ToDateTime(new TimeOnly());
+                               date = date.AddYears(3);
+                               double monthsTilExpiration = date.Subtract(DateTime.Now).TotalDays / 30;
+                               return monthsTilExpiration <= 0;
+                           });
+                           
+                           if (devices.Count <= 0)
+                           {
+                               LexiConsoleWriter.LexiWriteLine("No devices found...");
+                           }
+                           else
+                           {
+                               ShowAssets(resultOfFilter.ToList()); // To get headers
+                           }
+                           break;
+                       case 2:
+                           IEnumerable<Device> resultOfCompOnly = devices.Where(device => device.GetDeviceType().ToLower() == "computer");
+                           if (devices.Count <= 0)
+                           {
+                               LexiConsoleWriter.LexiWriteLine("No devices found...");
+                           }
+                           else
+                           {
+                               ShowAssets(resultOfCompOnly.ToList()); // To get headers
+                           }
+                           break;
+                       case 3:
+                           IEnumerable<Device> resultOfPhoneOnly = devices.Where(device => device.GetDeviceType().ToLower() == "smartphone");
+                           if (devices.Count <= 0)
+                           {
+                               LexiConsoleWriter.LexiWriteLine("No devices found...");
+                           }
+                           else
+                           {
+                               ShowAssets(resultOfPhoneOnly.ToList()); // To get headers
+                           }
+                           break;
+                       case 4:
+                           IEnumerable<Device> resultOfOffices = devices.OrderBy(device => device.OfficeLocation);
+                           if (devices.Count <= 0)
+                           {
+                               LexiConsoleWriter.LexiWriteLine("No devices found...");
+                           }
+                           else
+                           {
+                               ShowAssets(new List<Device>()); // To get headers
+                               string currentOffice = "";
+                               foreach (var device in resultOfOffices)
+                               {
+                                   if (currentOffice != device.OfficeLocation)
+                                   {
+                                       currentOffice = device.OfficeLocation;
+                                       LexiConsoleWriter.LexiWriteLine(string.Format(" === {0} ===", currentOffice));
+                                   }
+
+                                   ShowAsset(device, 15);
+                               }
+                           }
+                           
+                           break;
+                       default:
+                           ShowAssets(devices);
+                           break;
+                   }
+                   
+              
+                   Console.ReadKey();
+               }
+           } while (CurrentState == ATInterfaceState.ATI_ShowAssetList);
         }
 
         private static readonly string[] AssetInfoFields =
@@ -280,12 +409,20 @@ namespace Lexicon_Miniproject_SQLAssetTracking
             "ModelName",
             "OfficeLocation",
             "Purchase Date",
-            "Purchase Price"
+            "Price (USD)",
+            "Currency Code"
         };
         
         private bool IsValidField(string someLowercaseFieldData, int aFieldIndex, out string aErrorString)
         {
             aErrorString = "";
+
+            if (someLowercaseFieldData.Length <= 0)
+            {
+                aErrorString = "Input can't be empty!";
+                return false;
+            }
+            
             switch (aFieldIndex)
             {
                 case 0: // Device Type
@@ -335,10 +472,47 @@ namespace Lexicon_Miniproject_SQLAssetTracking
                     break;
                 }
 
-                case 6: // PurchasePrice
+                case 6: // Price (USD)
+                {
+                    //string[] data = someLowercaseFieldData.Split(' ');
+
+                    /*if (data.Length != 2)
+                    {
+                        aErrorString = "Follow format '[AMOUNT] [CURRENCY CODE]'";
+                        return false;
+                    }
+
+                    if (!int.TryParse(data[0], out var amresult))
+                    {
+                        aErrorString = "[AMOUNT] must be a number!";
+                        return false;
+                    }
+
+                    if (!data[1].All(Char.IsLetter))
+                    {
+                        aErrorString = "[CURRENCY CODE] must be all letters (and a length of 3)!";
+                        return false;
+                    }
+                    
+                    if (data[1].Length != 3)
+                    {
+                        aErrorString = "[CURRENCY CODE] must be a length of 3! (USD, EUR, SEK etc...)";
+                        return false;
+                    }*/
+                    
+                    if (!int.TryParse(someLowercaseFieldData, out var amresult))
+                    {
+                        aErrorString = "Price must be a number!";
+                        return false;
+                    }
+
+                    break;
+                }
+                case 7: // CurrencyCode
                 {
                     string[] data = someLowercaseFieldData.Split(' ');
 
+                    /*
                     if (data.Length != 2)
                     {
                         aErrorString = "Follow format '[AMOUNT] [CURRENCY CODE]'";
@@ -362,6 +536,19 @@ namespace Lexicon_Miniproject_SQLAssetTracking
                         aErrorString = "[CURRENCY CODE] must be a length of 3! (USD, EUR, SEK etc...)";
                         return false;
                     }
+                    */
+                    
+                    if (!someLowercaseFieldData.All(Char.IsLetter))
+                    {
+                        aErrorString = "Currency code must be all letters (and a length of 3)!";
+                        return false;
+                    }
+                    
+                    if (someLowercaseFieldData.Length != 3)
+                    {
+                        aErrorString = "Currency code must be a length of 3! (USD, EUR, SEK etc...)";
+                        return false;
+                    }
 
                     break;
                 }
@@ -370,11 +557,128 @@ namespace Lexicon_Miniproject_SQLAssetTracking
             return true;
         }
 
+        private void ShowAssetReport()
+        {
+            
+            
+            /*
+             * Total asset value per office
+             * Asset count per office
+             * Assets close to expiration
+             * Most expensive assets
+             */
+
+            List<Device> devices = dbContext.GetAllDevices();
+            Dictionary<string, List<Device>> officeToDevice = new Dictionary<string, List<Device>>();
+            devices.ForEach(device =>
+            {
+                string officeLocation = device.OfficeLocation;
+                if (officeToDevice.ContainsKey(officeLocation))
+                {
+                    officeToDevice[officeLocation].Add(device);
+                }
+                else
+                {
+                    officeToDevice.Add(officeLocation, new List<Device>{device});
+                }
+            });
+
+            const int padding = 12;
+            
+            string report = "";
+            report += "====== ASSET REPORT ======\n";
+
+            report += " --------------------------\n";
+            report += " | ASSET VALUE PER OFFICE | \n";
+            report += " --------------------------\n";
+            
+            report += " | " + "Office".PadRight(padding) + " | Asset value (USD)\n";
+            foreach (var office in officeToDevice)
+            {
+                decimal totalAssetValue = 0;
+                office.Value.ForEach(device => totalAssetValue += device.PurchasePrice.GetValueAsUSD());
+                
+                report += string.Format(" | " + office.Key.PadRight(padding) + " | " + PriceConverter.FormatCurrency(totalAssetValue, "USD") + "\n");
+            }
+            
+            report += " --------------------------\n";
+            report += " | ASSET COUNT PER OFFICE | \n";
+            report += " --------------------------\n";
+            report += " | " + "Office".PadRight(padding) + " | Asset count\n";
+            foreach (var office in officeToDevice)
+            {
+                report += string.Format(" | " + office.Key.PadRight(padding) + " | " + office.Value.Count + "\n");
+            }
+            
+            report += " ------------------------------\n";
+            report += " | ASSETS CLOSE TO EXPIRATION | \n";
+            report += " ------------------------------\n";
+            
+            devices.Sort((dev1, dev2) => dev1.PurchaseDate < dev2.PurchaseDate ? -1 : 1);
+
+            for (int i = 0; i < 5 && i < devices.Count; i++)
+            {
+                var device = devices[i];
+                report += string.Format(" {0}. {1}, {2} | PurchaseDate: {3} | Office: {4}\n", i + 1, device.DeviceBrand,
+                    device.ModelName,
+                    device.PurchaseDate, device.OfficeLocation);
+            }
+            
+            report += " -------------------------\n";
+            report += " | MOST EXPENSIVE ASSETS | \n";
+            report += " -------------------------\n";
+            
+            devices.Sort((dev1, dev2) => dev1.PurchasePrice.GetValueAsUSD() > dev2.PurchasePrice.GetValueAsUSD() ? -1 : 1);
+            
+            for (int i = 0; i < 5 && i < devices.Count; i++)
+            {
+                var device = devices[i];
+                report += string.Format(" {0}. {1}, {2} | Price: {3} | Office: {4}\n", i + 1, device.DeviceBrand,
+                    device.ModelName,
+                    PriceConverter.FormatCurrency(device.PurchasePrice.GetValueAsUSD(),
+                        "USD"), device.OfficeLocation);
+            }
+            
+            LexiConsoleWriter.LexiWriteLine(report);
+
+            List<string> reportOptions = new List<string>
+            {
+                "Go to main menu",
+                "Print to file"
+            };
+
+            do
+            {
+                int selection = ShowVerticalSelection("Choose the search mode (Up/Down arrow and 's' to select)", reportOptions, ConsoleKey.S);
+                CurrentState = ATInterfaceState.ATI_Mainmenu;
+                
+                if (selection == 1)
+                {
+                    string reportFileName = "tracking_report";
+                    if (LexiFileReader.DoesFileExist(reportFileName + ".txt"))
+                    {
+                        string[] fileNames = Directory.GetFiles(Directory.GetCurrentDirectory(), $"{reportFileName}*");
+                        reportFileName += fileNames.Length;
+                    }
+                    
+                    LexiFileReader fileReader = new LexiFileReader(reportFileName);
+                    fileReader.SetDataAsString(report);
+                    fileReader.SaveData();
+                }
+            } while (CurrentState == ATInterfaceState.ATI_ShowReport);
+            
+            Console.ReadKey();
+
+            CurrentState = ATInterfaceState.ATI_Mainmenu;
+        }
+
         private Device? CreateDeviceFromFieldArray(string[] aFieldArray)
         {
             Device? device = null;
-            string[] priceSplit = aFieldArray.Last().Split(' ');
-            Price price = new Price(decimal.Parse(priceSplit[0]), priceSplit[1].ToUpper());
+            //string[] priceSplit = aFieldArray.Last().Split(' ');
+            
+            /* ^2 means second to last */
+            Price price = new Price(decimal.Parse(aFieldArray[^2]), aFieldArray.Last().ToUpper());
             if (aFieldArray[0] == "computer")
             {
                 device = new ComputerDevice(price, DateOnly.FromDateTime(DateTime.Parse(aFieldArray[5])),
@@ -414,6 +718,7 @@ namespace Lexicon_Miniproject_SQLAssetTracking
                 {
                     LexiConsoleWriter.LexiWriteLine(errorString, ConsoleColor.Red);
                 }
+                
             } while (deviceData.Count < AssetInfoFields.Length);
 
             if (deviceData.Count == AssetInfoFields.Length)
@@ -444,7 +749,6 @@ namespace Lexicon_Miniproject_SQLAssetTracking
                 LexiConsoleWriter.LexiWriteLine("=== ADD ASSET ===");
                 
                 LexiConsoleWriter.LexiWriteLine("Type 'add' to add asset to database.");
-                LexiConsoleWriter.LexiWriteLine("Type 'seed base' to seed base content to database.");
 
                 LexiConsoleWriter.LexiWriteLine("Type back to go back.");
 
@@ -463,18 +767,14 @@ namespace Lexicon_Miniproject_SQLAssetTracking
                         dbContext.AddDevice(device);
                     }
                 }
-                else if (lowercaseInput == "seed base")
-                {
-                    foreach (var dev in BaseDevices)
-                    {
-                        dbContext.AddDevice(dev);
-                    }
-                }
+        
             } while (CurrentState == ATInterfaceState.ATI_AddAsset);
         }
 
         private void ShowDeleteAsset()
         {
+            Console.CursorVisible = false;
+            
             List<Device> devices = dbContext.GetAllDevices();
             int currentLineSelection = devices.Count;
             string lowercaseInput = "";
@@ -541,6 +841,8 @@ namespace Lexicon_Miniproject_SQLAssetTracking
                 }*/
                 
             } while (CurrentState == ATInterfaceState.ATI_DeleteAsset);
+
+            Console.CursorVisible = true;
         }
 
         private string[] GetAssetFieldsFromDevice(Device aDevice)
@@ -563,7 +865,8 @@ namespace Lexicon_Miniproject_SQLAssetTracking
             foundFields[3] = aDevice.ModelName;
             foundFields[4] = aDevice.OfficeLocation;
             foundFields[5] = aDevice.PurchaseDate.ToString();
-            foundFields[6] = aDevice.PurchasePrice.Value + " " + aDevice.PurchasePrice.CurrencyCode;
+            foundFields[6] = aDevice.PurchasePrice.GetLocalValue().ToString();
+            foundFields[7] = aDevice.PurchasePrice.CurrencyCode;
 
             return foundFields;
         }
@@ -576,8 +879,8 @@ namespace Lexicon_Miniproject_SQLAssetTracking
             aDevice.OfficeLocation = aFieldArray[4];
             aDevice.PurchaseDate = DateOnly.FromDateTime(DateTime.Parse(aFieldArray[5])); //= aDevice.PurchaseDate.ToString();
             
-            string[] priceSplit = aFieldArray.Last().Split(' ');
-            Price price = new Price(decimal.Parse(priceSplit[0]), priceSplit[1].ToUpper());
+            //string[] priceSplit = aFieldArray.Last().Split(' ');
+            Price price = new Price(decimal.Parse(aFieldArray[6]), aFieldArray[7].ToUpper());
             aDevice.PurchasePrice = price;
             
             //= aDevice.PurchasePrice.Value + " | " + aDevice.PurchasePrice.CurrencyCode;
@@ -587,6 +890,8 @@ namespace Lexicon_Miniproject_SQLAssetTracking
         private void UpdateAsset(Device aDevice)
         {
             string[] foundFields = GetAssetFieldsFromDevice(aDevice);
+            foundFields[6] = PriceConverter.ConvertFromEuro(PriceConverter.ConvertToEuro(aDevice.PurchasePrice), "USD")
+                .ToString(".##");
             bool isEditing = true;
             int padding = 15;
             int currentLineSelection = 1;
@@ -603,11 +908,11 @@ namespace Lexicon_Miniproject_SQLAssetTracking
                 {
                     if (index == currentLineSelection)
                     {
-                        Console.Write((">" + foundFields[index] + "<").PadRight(padding));
+                        Console.Write((">" + (index == 6 ? "$" : "") + foundFields[index] + "<").PadRight(padding));
                     }
                     else
                     {
-                        Console.Write((" " + foundFields[index] + " ").PadRight(padding));
+                        Console.Write((" " + (index == 6 ? "$" : "") + foundFields[index] + " ").PadRight(padding));
                     }
                 }
 

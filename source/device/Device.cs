@@ -29,7 +29,7 @@ namespace Lexicon_Miniproject_SQLAssetTracking
         {
             if (PurchasePrice.CurrencyCode == aCurrencyCode)
             {
-                return PurchasePrice.Value;
+                return PurchasePrice.GetLocalValue();
             }
 
             if (aCurrencyCode == "EURO")

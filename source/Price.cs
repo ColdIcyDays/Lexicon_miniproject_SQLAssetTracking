@@ -10,22 +10,37 @@ namespace Lexicon_Miniproject_SQLAssetTracking
     {
         public Price()
         {
-            Value = 0;
+            ValueInUSD = 0;
             CurrencyCode = "USD";
         }
 
         public Price(decimal aValue)
         {
-            Value = aValue;
+            ValueInUSD = aValue;
             CurrencyCode = "USD";
         }
 
-        public Price(decimal aValue, string aCurrencyCode) : this(aValue)
+        public Price(decimal aValueInUSD, string aCurrencyCode) : this(aValueInUSD)
         {
             CurrencyCode = aCurrencyCode;
+
+            /*if (CurrencyCode != "USD")
+            {
+                Value = PriceConverter.ConvertFromEuro(PriceConverter.ConvertToEuro(aValueInUSD, "USD"), aCurrencyCode);
+            }*/
         }
 
-        public decimal Value { get; set; }
+        public decimal GetLocalValue()
+        {
+            return PriceConverter.ConvertFromEuro(PriceConverter.ConvertToEuro(ValueInUSD, "USD"), CurrencyCode);
+        }
+
+        public decimal GetValueAsUSD()
+        {
+            return ValueInUSD;
+        }
+
+        private decimal ValueInUSD { get; set; }
         public string CurrencyCode { get; set; }
         
         

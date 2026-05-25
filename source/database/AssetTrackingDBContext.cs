@@ -13,7 +13,11 @@ public class AssetTrackingDBContext : DbContext
     {
         base.OnConfiguring(optionsBuilder);
 
-        optionsBuilder.UseSqlServer(connectionString);
+        optionsBuilder.UseSqlServer(connectionString, builder =>
+        {
+            builder.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+        });
+
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -46,6 +50,23 @@ public class AssetTrackingDBContext : DbContext
         }
         
 
+        return resultDevices;
+    }
+
+    internal List<Device> GetDevices(Func<DBDevice, bool> aWhere)
+    {
+        var devices = DBDevices.Where(aWhere).OrderBy(device => device.SerialNumber);
+        List<Device> resultDevices = new List<Device>();
+        foreach (var dbDevice in devices)
+        {
+            Device? dev = dbDevice.CreateDevice();
+            if (dev != null)
+            {
+                dev.DBRef = dbDevice;
+                resultDevices.Add(dev);
+            }
+        }
+        
         return resultDevices;
     }
 
@@ -108,7 +129,7 @@ internal class DBDevice
 
     public void SetupDBDevice(Device aDevice)
     {
-        PurchasePrice = new DBPrice(aDevice.PurchasePrice.Value, aDevice.PurchasePrice.CurrencyCode);
+        PurchasePrice = new DBPrice(aDevice.PurchasePrice.GetLocalValue(), aDevice.PurchasePrice.CurrencyCode);
         PurchaseDate = aDevice.PurchaseDate;
         DeviceBrand = aDevice.DeviceBrand;
         ModelName = aDevice.ModelName;
@@ -168,7 +189,7 @@ internal class DBPrice
 {
     public Price GetPrice()
     {
-        return new Price(Value, CurrencyCode);
+        return new Price(PriceConverter.ConvertFromEuro(PriceConverter.ConvertToEuro(Value, CurrencyCode), "USD"), CurrencyCode);
     }
     
     public DBPrice()
@@ -183,8 +204,9 @@ internal class DBPrice
         CurrencyCode = "USD";
     }
 
-    public DBPrice(decimal aValue, string aCurrencyCode) : this(aValue)
+    public DBPrice(decimal aValue, string aCurrencyCode)
     {
+        Value = aValue;
         CurrencyCode = aCurrencyCode;
     }
 

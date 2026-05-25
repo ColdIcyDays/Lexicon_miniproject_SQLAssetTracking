@@ -480,32 +480,6 @@ namespace Lexicon_Miniproject_SQLAssetTracking
 
                 case 6: // Price (USD)
                 {
-                    //string[] data = someLowercaseFieldData.Split(' ');
-
-                    /*if (data.Length != 2)
-                    {
-                        aErrorString = "Follow format '[AMOUNT] [CURRENCY CODE]'";
-                        return false;
-                    }
-
-                    if (!int.TryParse(data[0], out var amresult))
-                    {
-                        aErrorString = "[AMOUNT] must be a number!";
-                        return false;
-                    }
-
-                    if (!data[1].All(Char.IsLetter))
-                    {
-                        aErrorString = "[CURRENCY CODE] must be all letters (and a length of 3)!";
-                        return false;
-                    }
-                    
-                    if (data[1].Length != 3)
-                    {
-                        aErrorString = "[CURRENCY CODE] must be a length of 3! (USD, EUR, SEK etc...)";
-                        return false;
-                    }*/
-                    
                     if (!int.TryParse(someLowercaseFieldData, out var amresult))
                     {
                         aErrorString = "Price must be a number!";
@@ -516,33 +490,6 @@ namespace Lexicon_Miniproject_SQLAssetTracking
                 }
                 case 7: // CurrencyCode
                 {
-                    string[] data = someLowercaseFieldData.Split(' ');
-
-                    /*
-                    if (data.Length != 2)
-                    {
-                        aErrorString = "Follow format '[AMOUNT] [CURRENCY CODE]'";
-                        return false;
-                    }
-
-                    if (!int.TryParse(data[0], out var amresult))
-                    {
-                        aErrorString = "[AMOUNT] must be a number!";
-                        return false;
-                    }
-
-                    if (!data[1].All(Char.IsLetter))
-                    {
-                        aErrorString = "[CURRENCY CODE] must be all letters (and a length of 3)!";
-                        return false;
-                    }
-                    
-                    if (data[1].Length != 3)
-                    {
-                        aErrorString = "[CURRENCY CODE] must be a length of 3! (USD, EUR, SEK etc...)";
-                        return false;
-                    }
-                    */
                     
                     if (!someLowercaseFieldData.All(Char.IsLetter))
                     {

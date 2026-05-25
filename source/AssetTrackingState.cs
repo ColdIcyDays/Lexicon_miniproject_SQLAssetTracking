@@ -518,15 +518,6 @@ namespace Lexicon_Miniproject_SQLAssetTracking
 
         private void ShowAssetReport()
         {
-            
-            
-            /*
-             * Total asset value per office
-             * Asset count per office
-             * Assets close to expiration
-             * Most expensive assets
-             */
-
             List<Device> devices = dbContext.GetAllDevices();
             Dictionary<string, List<Device>> officeToDevice = new Dictionary<string, List<Device>>();
             devices.ForEach(device =>
